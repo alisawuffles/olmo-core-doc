@@ -46,7 +46,13 @@ python src/examples/llm/train.py tutorial-run-01 --dry-run \
   --trainer.callbacks.wandb.enabled=true
 ```
 ### Launching the run
-Now that we know how to change settings on the fly, we're ready to launch the run. Assuming that you have 2 GPUs available, the command would be
+Now that we know how to change settings on the fly, we're ready to launch the run. To get running as fast as possible, we'll use overrides to turn off a few features that we'd normally want on.
+- `--trainer.callbacks.lm_evaluator.enabled=false` to disable the in-loop perplexity evaluator.
+- `--trainer.callbacks.downstream_evaluator.enabled=false` to disable the in-loop downstream task evaluator.
+- `--trainer.no_checkpoints` to disable checkpointing.
+- `--trainer.hard_stop='{value: 100, unit: steps}'` to stop at step 100.
+
+Assuming you have two GPUs available, the command would be
 ```
 torchrun --nproc-per-node=2 src/examples/llm/train.py \
   tutorial-run-01 \
@@ -57,3 +63,4 @@ torchrun --nproc-per-node=2 src/examples/llm/train.py \
   --trainer.no_checkpoints \
   --trainer.hard_stop='{value: 100, unit: steps}'
 ```
+### Tokenizing new data
