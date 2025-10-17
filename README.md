@@ -32,7 +32,7 @@ Official training scripts for released models can be found in `src/scripts/offic
 To get started, we'll use the script `src/examples/llm/train.py` to launch a short language model pretraining run with a small transformer (271M params) on a subset of c4. This will only take a few minutes on as little as 2 NVIDIA 40GB A100s.
 
 ### Defining a config
-Let's understand how the key components and hyperparameters of the run are defined. Near the top of the script you’ll find the config dataclass:
+The `ExperimentConfig` dataclass is defined near the top of the script. 
 
 ```python
 @dataclass
@@ -58,9 +58,7 @@ class ExperimentConfig(Config):
     on the same dataset."""
 ```
 
-Using a config class is not necessary, but has several benefits:
-1. It gives us a good way to keep track of all the hyperparameters of each experiment. Since the config inherits from OLMo-core’s [Config](https://olmo-core.readthedocs.io/en/latest/config.html#olmo_core.config.Config) baseclass, it comes with useful methods to serialize it to JSON which, for example, could be uploaded to Weights & Biases or saved to the run’s checkpoint directory.
-2. It gives us a command-line argument parser that enables us to override fields in the config at runtime. For instance, we can add `--data_loader.prefetch_factor=4` to the command to update the `prefetch_factor` field within the `data_loader` part of the config.
+To override any fields in the config at runtime, we can simply add them as command-line options. For instance, adding `--data_loader.prefetch_factor=4` will update the `prefetch_factor` field within the `data_loader` part of the config. The script also specifies a subset of config options that we expect to be modified especially often as command-line arguments, namely the `--save-folder`, `work-dir`, and `--sequence-length`.
 
 To validate that our overrides are applied correctly, we can print the experimental config using the `--dry-run` flag. We also pass in the name of the run, which is the only positional argument expected by the script.
 
@@ -74,6 +72,29 @@ python src/examples/llm/train.py tutorial-run-01 --dry-run \
   --data_loader.prefetch_factor=4 \
   --trainer.callbacks.wandb.enabled=true
 ```
+
+Finally, we can change the model architecture itself via the `--model-factory` argument. The options for this argument are the various classmethods of [TransformerConfig](https://olmo-core.readthedocs.io/en/latest/nn/transformer.html#olmo_core.nn.transformer.TransformerConfig), which define preset model configurations. Alternatively, you can also replace the following lines of the script with a particular `TransformerConfig` instance. For example, to hard-code in an OLMo2 1B model, you can replace these lines:
+
+```
+    try:
+        factory = getattr(TransformerConfig, opts.model_factory)
+    except AttributeError:
+        raise ValueError(f"Unknown model factory: {opts.model_factory}")
+    model_config = factory(
+        vocab_size=tokenizer_config.padded_vocab_size(),  # a little bigger than actual vocab size to make it a multiple of 128
+    )
+```
+
+with
+
+```
+    model_config = TransformerConfig.olmo2_1B(
+        vocab_size=tokenizer_config.padded_vocab_size()
+    )
+```
+
+To specify a new model config, we recommend creating a new classmethod under `TransformerConfig`. Keep in mind that as you change the model size and architecture you’ll likely want to adjust hyperparameters and performance settings such as the learning rate and micro-batch size (`--train_module.rank_microbatch_size`).
+
 ### Launching the run
 Now that we know how to change settings on the fly, we're ready to launch the run. For the first run, we'll use overrides to turn off some features that we'd normally want on.
 - `--trainer.callbacks.lm_evaluator.enabled=false` disables the in-loop perplexity evaluator.
