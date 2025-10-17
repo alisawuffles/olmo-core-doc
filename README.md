@@ -60,7 +60,7 @@ class ExperimentConfig(Config):
 
 To override any fields in the config at runtime, we can simply add them as command-line options. For instance, adding `--data_loader.prefetch_factor=4` will update the `prefetch_factor` field within the `data_loader` part of the config. The script also specifies a subset of config options that we expect to be modified especially often as command-line arguments, namely the `--save-folder`, `work-dir`, and `--sequence-length`.
 
-To validate that our overrides are applied correctly, we can print the experimental config using the `--dry-run` flag. We also pass in the name of the run, which is the only positional argument expected by the script.
+To validate that our overrides are applied correctly, we can print the experimental config using the `--dry-run` flag. Note that the single positional argument expected by the script is the name of the run.
 
 ```bash
 python src/examples/llm/train.py tutorial-run-01 --dry-run
@@ -96,13 +96,7 @@ with
 To specify a new model config, we recommend creating a new classmethod under `TransformerConfig`. Keep in mind that as you change the model size and architecture you’ll likely want to adjust hyperparameters and performance settings such as the learning rate and micro-batch size (`--train_module.rank_microbatch_size`).
 
 ### Launching the run
-Now that we know how to change settings on the fly, we're ready to launch the run. For the first run, we'll use overrides to turn off some features that we'd normally want on.
-- `--trainer.callbacks.lm_evaluator.enabled=false` disables the in-loop perplexity evaluator.
-- `--trainer.callbacks.downstream_evaluator.enabled=false` disables the in-loop downstream task evaluator.
-- `--trainer.no_checkpoints` disables checkpointing.
-- `--trainer.hard_stop='{value: 100, unit: steps}'` terminates the training at step 100.
-
-Assuming you have two GPUs available, the command would be
+Now that we know how to change settings on the fly, we're ready to launch the run. For the first run, we'll use overrides to disable the in-loop perplexity evaluator, in-loop downstream task evaluator, checkpoint, and terminate the training at step 100. If you have two GPUs available, the command would be
 ```
 torchrun --nproc-per-node=2 src/examples/llm/train.py \
   tutorial-run-01 \
@@ -113,4 +107,9 @@ torchrun --nproc-per-node=2 src/examples/llm/train.py \
   --trainer.no_checkpoints \
   --trainer.hard_stop='{value: 100, unit: steps}'
 ```
-### Tokenizing new data
+
+### Finetuning pretrained models
+
+This script can be used for finetuning pretrained models as well. To tell `Trainer` to load pretrained weights at the beginning of the run, use the `--load-path` option. You may also need to convert your model into a format that the `Trainer` expects. See this [HF conversion guide](You need to convert the pretrained weights into a format that the Trainer expects. See this HF conversion guide for an example of converting weights from HuggingFace into the right format.) for an example of converting weights from HuggingFace into the right format.
+
+# Tokenizing new data
