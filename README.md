@@ -15,6 +15,8 @@
 
 `OLMo-core` is a repository for training and using OLMo3, AI2's state-of-the-art open language model. It is designed by scientists, for scientists.
 
+This is a one-page recipe to launch a pretraining experiment from scratch, from tokenization to downstream evaluations.
+
 ## Installation
 Create or activate a Python virtual environment with a Python version ≥ 3.10, then install [PyTorch](https://pytorch.org/).
 
@@ -112,4 +114,44 @@ torchrun --nproc-per-node=2 src/examples/llm/train.py \
 
 This script can be used for finetuning pretrained models as well. To tell `Trainer` to load pretrained weights at the beginning of the run, use the `--load-path` option. You may also need to convert your model into a format that the `Trainer` expects. See this [HF conversion guide](You need to convert the pretrained weights into a format that the Trainer expects. See this HF conversion guide for an example of converting weights from HuggingFace into the right format.) for an example of converting weights from HuggingFace into the right format.
 
-# Tokenizing new data
+## Providing your own data
+To provide our own dataset for pretraining, we will want to use the Dolma Toolkit housed at [allenai/dolma](https://github.com/allenai/dolma), which can be installed with `pip install dolma`. Then, we can access the `dolma tokens` command for tokenizing documents. The tool can be used with any HuggingFace-compatible tokenizer.
+
+### Raw data format
+
+The raw data should in `.jsonl` format, ideally with `gz` or `zst` compression. Each line of the JSONL file is a JSON object representing a single document, with the following format
+
+```
+{
+    "id": "...",             # MANDATORY: identifier unique with its source
+    "text": "foo",           # MANDATORY: textual content of the document
+    "source": "...",         # MANDATORY: source of the data, such as peS2o, common-crawl, etc.
+    "added": "...",          # OPTIONAL: timestamp ai2 acquired this data
+    "created": "..."         # OPTIONAL: timestamp when orig document was created (best-guess if not available)
+    "metadata": {...}        # OPTIONAL: source-specific metadata
+}
+```
+
+### Tokenization
+Now, we can tokenize our raw data with the following command. Please see [here](https://github.com/allenai/dolma/blob/main/docs/tokenize.md#parameters) for the full list of parameters accepted by `dolma tokens`.
+
+```
+dolma tokens \
+    --documents "/path/to/documents/*" \
+    --destination "/path/to/destination" \
+    --tokenizer.name_or_path allenai/dolma2-tokenizer \
+    --tokenizer.eos_token_id 100257 \
+    --tokenizer.pad_token_id 100277 \
+    --tokenizer.encode_special_tokens \
+    --processes $(python3 -c "import multiprocessing; print(multiprocessing.cpu_count())") \
+    --dtype uint32
+```
+
+### Tokenized data format
+
+The output is a `.npy` file containing concatenated tokenized documents, and a `.csv.gz` file containing the metadata for all the tokenized documents. The metadata has the following columns:
+- `start` (int): The start index of the document/chunk in the `.npy` tokenized file (0-indexed)
+- `end` (int): The end index of the document/chunk in the `.npy` tokenized file (0-indexed, exclusive)
+- `id` (str): The unique identifier of the original document
+- `src` (str): The source file path where the original document came from
+- `loc` (int): The line number/location of the document in the original source file (1-indexed)
