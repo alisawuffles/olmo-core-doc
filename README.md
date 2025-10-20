@@ -34,12 +34,10 @@ pip install ai2-olmo-core
 
 ## Pretraining
 
-Official training scripts for released models can be found in `src/scripts/official/`, and are meant to be launched with `torchrun`.
-
-We will start from the script `src/examples/llm/train.py` to launch our first pretraining run.
+We will use the script `src/examples/llm/train.py` to launch our first pretraining run. Official training scripts for released models can be found in `src/scripts/official/`.
 
 ### Defining a config
-Near the top of the script, we will find the config dataclass.
+Near the top of the script we'll find the config dataclass.
 
 ```python
 @dataclass
@@ -65,22 +63,19 @@ class ExperimentConfig(Config):
     on the same dataset."""
 ```
 
-To override any fields in the config at runtime, we can simply pass them in as command-line options. For instance, `--data_loader.prefetch_factor=4` will update the `prefetch_factor` field within the `data_loader` part of the config. The script also takes a subset of config options directly as command-line arguments that we expect to be modified especially, namely `--save-folder`, `work-dir`, and `--sequence-length`.
-
-To print the config without actually launching training, we can use the `--dry-run` flag. Note that the single positional argument expected by the script is the name of the run.
+To override any fields in the config at runtime, we can simply pass them in as command-line options. For instance, adding `--data_loader.prefetch_factor=4` would update the `prefetch_factor` field within the `data_loader` part of the config. To validate that our overrides are applied correctly, we can print the config without actually launching training using the `--dry-run` flag.
 
 ```bash
 python src/examples/llm/train.py tutorial-run-01 --dry-run
 ```
-
-And now let's try it again while overriding a few config options:
+Note that the single positional argument expected by the script is the name of the run. Now let's try it again while overriding a few config options:
 ```bash
 python src/examples/llm/train.py tutorial-run-01 --dry-run \
   --data_loader.prefetch_factor=4 \
   --trainer.callbacks.wandb.enabled=true
 ```
 
-Finally, we can change the model architecture itself via the `--model-factory` argument. The options for this argument are the various classmethods of [TransformerConfig](https://olmo-core.readthedocs.io/en/latest/nn/transformer.html#olmo_core.nn.transformer.TransformerConfig), which define preset model configurations. By default, `model-factory` is set to `llama2_271M`, which constructs a small transformer with 271M params. Alternatively, you can hardcode the desired config by replacing the following lines
+Finally, we can change the model architecture via the `--model-factory` argument. The options for this argument are the various classmethods of [TransformerConfig](https://olmo-core.readthedocs.io/en/latest/nn/transformer.html#olmo_core.nn.transformer.TransformerConfig), which define preset model configurations. By default, `model-factory` is set to `llama2_271M`, which constructs a small transformer with 271M params. Alternatively, you can hardcode the desired config by replacing the following lines
 
 ```
     try:
