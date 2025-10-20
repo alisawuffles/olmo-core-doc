@@ -20,21 +20,26 @@ This is a one-page recipe to launch a pretraining experiment from scratch, from 
 ## Installation
 Create or activate a Python virtual environment with a Python version ≥ 3.10, then install [PyTorch](https://pytorch.org/).
 
-Next, we recommend installing `OLMo-core` from source:
+For development, we recommend installing `OLMo-core` from source:
 ```bash
 git clone https://github.com/allenai/OLMo-core.git
 cd OLMo-core
 pip install -e .[all]
 ```
 
+Or you can install `OLMo-core` from PyPI with:
+```bash
+pip install ai2-olmo-core
+```
+
 ## Pretraining
 
-Official training scripts for released models can be found in `src/scripts/official/`. These scripts are meant to be launched with `torchrun`.
+Official training scripts for released models can be found in `src/scripts/official/`, and are meant to be launched with `torchrun`.
 
-To get started, we'll use the script `src/examples/llm/train.py` to launch a short language model pretraining run with a small transformer (271M params) on a subset of c4. This will only take a few minutes on as little as 2 NVIDIA 40GB A100s.
+We will start from the script `src/examples/llm/train.py` to launch our first pretraining run.
 
 ### Defining a config
-The `ExperimentConfig` dataclass is defined near the top of the script. 
+Near the top of the script, we will find the config dataclass.
 
 ```python
 @dataclass
@@ -60,9 +65,9 @@ class ExperimentConfig(Config):
     on the same dataset."""
 ```
 
-To override any fields in the config at runtime, we can simply add them as command-line options. For instance, adding `--data_loader.prefetch_factor=4` will update the `prefetch_factor` field within the `data_loader` part of the config. The script also specifies a subset of config options that we expect to be modified especially often as command-line arguments, namely the `--save-folder`, `work-dir`, and `--sequence-length`.
+To override any fields in the config at runtime, we can simply pass them in as command-line options. For instance, `--data_loader.prefetch_factor=4` will update the `prefetch_factor` field within the `data_loader` part of the config. The script also takes a subset of config options directly as command-line arguments that we expect to be modified especially, namely `--save-folder`, `work-dir`, and `--sequence-length`.
 
-To validate that our overrides are applied correctly, we can print the experimental config using the `--dry-run` flag. Note that the single positional argument expected by the script is the name of the run.
+To print the config without actually launching training, we can use the `--dry-run` flag. Note that the single positional argument expected by the script is the name of the run.
 
 ```bash
 python src/examples/llm/train.py tutorial-run-01 --dry-run
@@ -75,7 +80,7 @@ python src/examples/llm/train.py tutorial-run-01 --dry-run \
   --trainer.callbacks.wandb.enabled=true
 ```
 
-Finally, we can change the model architecture itself via the `--model-factory` argument. The options for this argument are the various classmethods of [TransformerConfig](https://olmo-core.readthedocs.io/en/latest/nn/transformer.html#olmo_core.nn.transformer.TransformerConfig), which define preset model configurations. Alternatively, you can also replace the following lines of the script with a particular `TransformerConfig` instance. For example, to hard-code in an OLMo2 1B model, you can replace these lines:
+Finally, we can change the model architecture itself via the `--model-factory` argument. The options for this argument are the various classmethods of [TransformerConfig](https://olmo-core.readthedocs.io/en/latest/nn/transformer.html#olmo_core.nn.transformer.TransformerConfig), which define preset model configurations. By default, `model-factory` is set to `llama2_271M`, which constructs a small transformer with 271M params. Alternatively, you can hardcode the desired config by replacing the following lines
 
 ```
     try:
@@ -87,7 +92,7 @@ Finally, we can change the model architecture itself via the `--model-factory` a
     )
 ```
 
-with
+with a particular `TransformerConfig` instance, such as an OLMo2 1B model, as follows.
 
 ```
     model_config = TransformerConfig.olmo2_1B(
@@ -98,7 +103,7 @@ with
 To specify a new model config, we recommend creating a new classmethod under `TransformerConfig`. Keep in mind that as you change the model size and architecture you’ll likely want to adjust hyperparameters and performance settings such as the learning rate and micro-batch size (`--train_module.rank_microbatch_size`).
 
 ### Launching the run
-Now that we know how to change settings on the fly, we're ready to launch the run. For the first run, we'll use overrides to disable the in-loop perplexity evaluator, in-loop downstream task evaluator, checkpoint, and terminate the training at step 100. If you have two GPUs available, the command would be
+Now that we know how to change settings on the fly, we're ready to launch the run. For the first run, we'll use overrides to disable the in-loop perplexity evaluator, in-loop downstream task evaluator, checkpoint, and terminate the training at step 100. Assuming you have two GPUs available, the command would be
 ```
 torchrun --nproc-per-node=2 src/examples/llm/train.py \
   tutorial-run-01 \
@@ -109,6 +114,7 @@ torchrun --nproc-per-node=2 src/examples/llm/train.py \
   --trainer.no_checkpoints \
   --trainer.hard_stop='{value: 100, unit: steps}'
 ```
+This should take only a few minutes on two NVIDIA 40GB A100s.
 
 ### Finetuning pretrained models
 
@@ -133,7 +139,7 @@ The raw data should in `.jsonl` format, ideally with `gz` or `zst` compression. 
 ```
 
 ### Tokenization
-Now, we can tokenize our raw data with the following command. Please see [here](https://github.com/allenai/dolma/blob/main/docs/tokenize.md#parameters) for the full list of parameters accepted by `dolma tokens`.
+Now, we can tokenize our raw data with the following command. Please use `dolma tokens --help` for the full list of parameters accepted by `dolma tokens`.
 
 ```
 dolma tokens \
