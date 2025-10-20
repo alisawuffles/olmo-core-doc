@@ -77,7 +77,7 @@ python src/examples/llm/train.py tutorial-run-01 --dry-run \
 
 Finally, we can change the model architecture via the `--model-factory` argument. The options for this argument are the various classmethods of [TransformerConfig](https://olmo-core.readthedocs.io/en/latest/nn/transformer.html#olmo_core.nn.transformer.TransformerConfig), which define preset model configurations. By default, `model-factory` is set to `llama2_271M`, which constructs a small transformer with 271M params. Alternatively, you can hardcode the desired config by replacing the following lines
 
-```
+```python
     try:
         factory = getattr(TransformerConfig, opts.model_factory)
     except AttributeError:
@@ -89,7 +89,7 @@ Finally, we can change the model architecture via the `--model-factory` argument
 
 with a particular `TransformerConfig` instance, such as an OLMo2 1B model, as follows.
 
-```
+```python
     model_config = TransformerConfig.olmo2_1B(
         vocab_size=tokenizer_config.padded_vocab_size()
     )
@@ -99,7 +99,7 @@ To specify a new model config, we recommend creating a new classmethod under `Tr
 
 ### Launching the run
 Now that we know how to change settings on the fly, we're ready to launch the run. For the first run, we'll use overrides to disable the in-loop perplexity evaluator, in-loop downstream task evaluator, checkpoint, and terminate the training at step 100. Assuming you have two GPUs available, the command would be
-```
+```bash
 torchrun --nproc-per-node=2 src/examples/llm/train.py \
   tutorial-run-01 \
   --save-folder=/tmp/tutorial-run-01 \
@@ -124,8 +124,8 @@ The raw data should in `.jsonl` format, ideally with `gz` or `zst` compression. 
 
 ```
 {
-    "id": "...",             # MANDATORY: identifier unique with its source
-    "text": "foo",           # MANDATORY: textual content of the document
+    "id": "...",             # MANDATORY: source-specific identifier
+    "text": "foo",           # MANDATORY: content of the document
     "source": "...",         # MANDATORY: source of the data, such as peS2o, common-crawl, etc.
     "added": "...",          # OPTIONAL: timestamp ai2 acquired this data
     "created": "..."         # OPTIONAL: timestamp when orig document was created (best-guess if not available)
@@ -133,10 +133,12 @@ The raw data should in `.jsonl` format, ideally with `gz` or `zst` compression. 
 }
 ```
 
+Note that the `id` field only needs to be unique within the `source`. For example, having the two documents `{"source": "c4", "id": "123"}` and `{"source": "github", "id": "123"}` would be acceptable.
+
 ### Tokenization
 Now, we can tokenize our raw data with the following command. Please use `dolma tokens --help` for the full list of parameters accepted by `dolma tokens`.
 
-```
+```bash
 dolma tokens \
     --documents "/path/to/documents/*" \
     --destination "/path/to/destination" \
@@ -150,9 +152,11 @@ dolma tokens \
 
 ### Tokenized data format
 
-The output is a `.npy` file containing concatenated tokenized documents, and a `.csv.gz` file containing the metadata for all the tokenized documents. The metadata has the following columns:
+The output is in the form of `.npy` files containing concatenated tokenized documents, and a `.csv.gz` file containing all the metadata. The metadata has the following columns and one row for each document:
 - `start` (int): The start index of the document/chunk in the `.npy` tokenized file (0-indexed)
 - `end` (int): The end index of the document/chunk in the `.npy` tokenized file (0-indexed, exclusive)
 - `id` (str): The unique identifier of the original document
 - `src` (str): The source file path where the original document came from
 - `loc` (int): The line number/location of the document in the original source file (1-indexed)
+
+Now that we have the output data paths, we can pass them into our script by enumerating a list as in `--dataset.paths='["/path/to/data1.npy", "/path/to/data2.npy"]`, or, by using arbitrary wildcards, as in `--dataset.paths='["/path/to/data/*.npy"]'`.
