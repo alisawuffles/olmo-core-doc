@@ -159,4 +159,4 @@ The output is in the form of `.npy` files containing concatenated tokenized docu
 - `src` (str): The source file path where the original document came from
 - `loc` (int): The line number/location of the document in the original source file (1-indexed)
 
-Now that we have the output data paths, we can pass them into our script by enumerating a list as in `--dataset.paths='["/path/to/data1.npy", "/path/to/data2.npy"]`, or, by using arbitrary wildcards, as in `--dataset.paths='["/path/to/data/*.npy"]'`.
+Now that we have the output data paths, we can pass them into our script by enumerating a list as in `--dataset.paths='["/path/to/data1.npy", "/path/to/data2.npy"]'`, or, by using arbitrary wildcards, as in `--dataset.paths='["/path/to/data/*.npy"]'`.
