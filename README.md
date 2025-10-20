@@ -68,7 +68,7 @@ To override any fields in the config at runtime, we can simply pass them in as c
 ```bash
 python src/examples/llm/train.py tutorial-run-01 --dry-run
 ```
-Note that the single positional argument expected by the script is the name of the run. Now let's try it again while overriding a few config options:
+Note that the single positional argument provided, here `tutorial-run-01`, is the name of the run. Now we can try overriding a few config options and verify that the corresponding fields in the printed config have changed.
 ```bash
 python src/examples/llm/train.py tutorial-run-01 --dry-run \
   --data_loader.prefetch_factor=4 \
