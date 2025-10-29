@@ -36,6 +36,8 @@ pip install ai2-olmo-core
 
 We will use the script `src/examples/llm/train.py` to launch our first pretraining run. Official training scripts for released models can be found in `src/scripts/official/`.
 
+TODO: need to talk about how to download the pretraining data.
+
 ### Defining a config
 Near the top of the script we'll find the config dataclass.
 
